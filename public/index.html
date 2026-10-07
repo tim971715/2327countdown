@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>國巨千元倒數</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06060c; --card:rgba(20,20,36,.62); --line:rgba(255,255,255,.09);
+  --text:#ecebf5; --muted:#8d8ca8; --faint:#55546e;
+  --gold:#f7c948; --gold2:#ff9f1c; --up:#ff3d5f; --down:#1fd286; --blue:#7fb2ff;
+  --num:'Orbitron','Noto Sans TC',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans TC',system-ui,-apple-system,'Microsoft JhengHei',sans-serif}
+body{min-height:100vh;overflow-x:hidden;
+  background:
+    radial-gradient(1200px 600px at 85% -10%,rgba(255,61,95,.18),transparent 60%),
+    radial-gradient(900px 600px at -10% 20%,rgba(247,201,72,.12),transparent 60%),
+    radial-gradient(800px 500px at 50% 120%,rgba(127,178,255,.10),transparent 60%),var(--bg)}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:20px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.lbl{color:var(--muted);font-size:13px;letter-spacing:.12em}
+.sub{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.5}
+h2{font-size:16px;margin:0 0 14px;letter-spacing:.06em;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+h2 small{color:var(--muted);font-weight:400;font-size:12px}
+.num{font-family:var(--num);font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
+
+/* header */
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:14px}
+.code{font-family:var(--num);font-weight:900;font-size:13px;padding:6px 10px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1200;letter-spacing:.1em}
+h1{margin:0;font-size:clamp(22px,4vw,32px);font-weight:900;letter-spacing:.08em}
+h1 em{font-style:normal;background:linear-gradient(90deg,var(--gold),#fff3c4 40%,var(--gold2) 60%,var(--up));-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:-200% 0}}
+.status{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);font-size:13px}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.live::before{background:var(--up);box-shadow:0 0 0 0 rgba(255,61,95,.7);animation:ping 1.6s infinite}
+.pill.closed::before{background:var(--gold)}
+.pill.err::before{background:#ff8a00}
+@keyframes ping{70%{box-shadow:0 0 0 10px rgba(255,61,95,0)}100%{box-shadow:0 0 0 0 rgba(255,61,95,0)}}
+.refresh{height:2px;margin:14px 0 18px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
+.refresh i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--up))}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:18px}
+.ring-card{display:grid;place-items:center;position:relative;min-height:380px}
+.ring{width:min(360px,100%);aspect-ratio:1;display:block}
+.ring .track{stroke:rgba(255,255,255,.07)}
+.ring .bar{transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 10px rgba(247,201,72,.65))}
+.ring-center{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:4px}
+.price{font-family:var(--num);font-weight:900;font-size:clamp(46px,7vw,68px);line-height:1;letter-spacing:.02em;text-shadow:0 0 28px rgba(255,255,255,.18);border-radius:12px;padding:4px 10px}
+.price.flash-up{animation:fu .9s ease-out}
+.price.flash-down{animation:fd .9s ease-out}
+@keyframes fu{0%{background:rgba(255,61,95,.55)}100%{background:transparent}}
+@keyframes fd{0%{background:rgba(31,210,134,.5)}100%{background:transparent}}
+.chg{font-family:var(--num);font-size:16px;font-weight:700}
+.gap{color:var(--muted);font-size:13px;margin-top:6px}
+.gap b{color:var(--gold);font-family:var(--num)}
+
+.stats{display:grid;grid-template-rows:repeat(3,1fr);gap:18px}
+.stat{display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+.stat::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(247,201,72,.16),transparent 70%)}
+.stat:nth-child(2)::after{background:radial-gradient(circle,rgba(255,61,95,.2),transparent 70%)}
+.stat:nth-child(3)::after{background:radial-gradient(circle,rgba(127,178,255,.18),transparent 70%)}
+.big{font-family:var(--num);font-weight:900;font-size:clamp(38px,5.4vw,56px);line-height:1.05;margin-top:4px}
+.big small{font-family:'Noto Sans TC',sans-serif;font-size:16px;font-weight:500;color:var(--muted);margin-left:8px}
+#pctLeft{background:linear-gradient(180deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+#limitCount{color:var(--up);text-shadow:0 0 24px rgba(255,61,95,.55)}
+#etaDays{color:var(--blue);text-shadow:0 0 24px rgba(127,178,255,.45)}
+
+/* countdown */
+.countdown{margin-top:18px;text-align:center;padding:26px 20px;background:linear-gradient(135deg,rgba(247,201,72,.10),rgba(255,61,95,.08) 50%,rgba(127,178,255,.08)),var(--card)}
+.cd{display:flex;justify-content:center;gap:clamp(8px,2.4vw,22px);margin:14px 0 4px;flex-wrap:wrap}
+.cd>div{min-width:clamp(70px,14vw,120px);padding:14px 10px 10px;border-radius:16px;background:rgba(0,0,0,.35);border:1px solid rgba(247,201,72,.25);box-shadow:inset 0 0 30px rgba(247,201,72,.07)}
+.cd b{display:block;font-family:var(--num);font-weight:900;font-size:clamp(34px,6vw,60px);line-height:1;color:#fff;text-shadow:0 0 18px rgba(247,201,72,.7)}
+.cd span{display:block;margin-top:8px;color:var(--muted);font-size:12px;letter-spacing:.2em}
+.cd.never b{color:var(--faint);text-shadow:none}
+
+/* ladder */
+.section{margin-top:18px}
+.ladder{display:flex;align-items:flex-end;gap:10px;overflow-x:auto;overflow-y:hidden;padding:12px 6px 8px;scrollbar-width:thin}
+.step{flex:1 0 96px;border-radius:14px 14px 6px 6px;padding:10px 10px 12px;background:linear-gradient(180deg,rgba(255,61,95,.28),rgba(255,61,95,.06));border:1px solid rgba(255,61,95,.35);text-align:center;position:relative;opacity:0;transform:translateY(16px);animation:rise .6s forwards}
+.step.base{background:rgba(255,255,255,.04);border-color:var(--line)}
+.step.goal{background:linear-gradient(180deg,rgba(247,201,72,.45),rgba(247,201,72,.08));border-color:var(--gold);box-shadow:0 0 30px rgba(247,201,72,.35)}
+.step.today{outline:2px dashed rgba(255,255,255,.35);outline-offset:3px}
+.step .d{font-size:12px;color:var(--muted)}
+.step .p{font-family:var(--num);font-weight:700;font-size:20px;margin:6px 0 2px}
+.step .t{font-size:11px;color:var(--muted)}
+.step.ellipsis{flex:0 0 40px;background:none;border:none;display:grid;place-items:center;color:var(--muted);font-size:22px}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* lower grid */
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;margin-top:18px}
+#chart{position:relative;width:100%;min-height:300px}
+#chart svg{display:block;width:100%;height:300px}
+.tip{position:absolute;pointer-events:none;background:rgba(10,10,20,.92);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .12s}
+.tip b{font-family:var(--num);font-size:14px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:8px}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+
+.today-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;font-size:14px}
+.today-grid div{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0}
+.today-grid span{color:var(--muted)}
+.range{margin:18px 0 6px;position:relative;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--down),rgba(255,255,255,.12) 50%,var(--up))}
+.range .hl{position:absolute;top:-3px;height:16px;border-radius:4px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35)}
+.range .now{position:absolute;top:-6px;width:4px;height:22px;border-radius:2px;background:#fff;box-shadow:0 0 10px #fff;transform:translateX(-2px);transition:left .6s}
+.range-lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.book{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-top:16px;font-size:13px}
+.book .h{color:var(--muted);font-size:12px}
+.book .b{color:var(--up)} .book .a{color:var(--down)}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500;font-size:12px;letter-spacing:.08em}
+td.n{font-family:var(--num)}
+.tag{font-size:12px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.tag.ok{color:var(--down);border-color:rgba(31,210,134,.4)}
+.tag.hard{color:var(--gold);border-color:rgba(247,201,72,.4)}
+.tag.no{color:var(--up);border-color:rgba(255,61,95,.4)}
+
+footer{margin-top:24px;color:var(--faint);font-size:12px;text-align:center;line-height:1.8}
+.banner{display:none;margin-top:18px;text-align:center;font-size:clamp(22px,4vw,36px);font-weight:900;padding:20px;border-radius:20px;background:linear-gradient(90deg,var(--gold),var(--gold2),var(--up));color:#1a0b00}
+body.done .banner{display:block}
+
+@media (max-width:860px){
+  .hero,.grid2{grid-template-columns:1fr}
+  .ring-card{min-height:320px}
+  .stats{grid-template-rows:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="code">2327</span><h1>國巨 <em>千元倒數</em></h1></div>
+    <div class="status"><span id="updated"></span><span id="pill" class="pill">連線中…</span></div>
+  </header>
+  <div class="refresh"><i id="refreshBar"></i></div>
+
+  <section class="hero">
+    <div class="card ring-card">
+      <svg class="ring" viewBox="0 0 300 300" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#fff3c4"/><stop offset=".45" stop-color="#f7c948"/><stop offset="1" stop-color="#ff3d5f"/>
+          </linearGradient>
+        </defs>
+        <circle class="track" cx="150" cy="150" r="128" fill="none" stroke-width="14"/>
+        <g id="ticks"></g>
+        <circle id="ringBar" class="bar" cx="150" cy="150" r="128" fill="none" stroke="url(#g)" stroke-width="14" stroke-dasharray="804.25" stroke-dashoffset="804.25" stroke-linecap="round" transform="rotate(-90 150 150)"/>
+      </svg>
+      <div class="ring-center">
+        <div class="lbl">即時股價</div>
+        <div id="price" class="price">———</div>
+        <div id="chg" class="chg flat">—</div>
+        <div id="gap" class="gap">距 1000 還差 <b>—</b> 元</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="card stat"><div class="lbl">距離 1000 還差</div><div class="big"><span id="pctLeft">—</span><small>%</small></div><div class="sub" id="pctSub">&nbsp;</div></div>
+      <div class="card stat"><div class="lbl">還要漲停</div><div class="big"><span id="limitCount">—</span><small>次</small></div><div class="sub" id="limitSub">&nbsp;</div></div>
+      <div class="card stat"><div class="lbl">照近 5 日走勢推估</div><div class="big"><span id="etaDays">—</span><small>個交易日</small></div><div class="sub" id="etaSub">&nbsp;</div></div>
+    </div>
+  </section>
+
+  <div class="banner">🎉 國巨千元達陣！🎉</div>
+
+  <section class="card countdown">
+    <div class="lbl" id="cdTitle">預計達標倒數</div>
+    <div class="cd" id="cd">
+      <div><b id="cdD">--</b><span>天</span></div>
+      <div><b id="cdH">--</b><span>時</span></div>
+      <div><b id="cdM">--</b><span>分</span></div>
+      <div><b id="cdS">--</b><span>秒</span></div>
+    </div>
+    <div class="sub" id="cdSub">&nbsp;</div>
+  </section>
+
+  <section class="card section">
+    <h2>漲停階梯 <small id="ladderNote"></small></h2>
+    <div class="ladder" id="ladder"></div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h2>走勢與推估 <small>灰底為近 5 日區間</small></h2>
+      <div id="chart"><div class="tip" id="tip"></div></div>
+      <div class="legend">
+        <span><i style="border-color:var(--blue)"></i>收盤價</span>
+        <span><i style="border-color:var(--gold);border-top-style:dashed"></i>照近 5 日複利外插</span>
+        <span><i style="border-color:rgba(247,201,72,.6);border-top-style:dotted"></i>1000 目標</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>今日盤勢 <small id="todayDate"></small></h2>
+      <div class="range-lbl"><span>跌停 <b id="ld" class="num">—</b></span><span>漲停 <b id="lu" class="num">—</b></span></div>
+      <div class="range" id="range"><div class="hl" id="rangeHL"></div><div class="now" id="rangeNow"></div></div>
+      <div class="today-grid" style="margin-top:14px">
+        <div><span>開盤</span><b id="o" class="num">—</b></div>
+        <div><span>昨收</span><b id="y" class="num">—</b></div>
+        <div><span>最高</span><b id="h" class="num">—</b></div>
+        <div><span>最低</span><b id="l" class="num">—</b></div>
+        <div><span>成交量</span><b id="v" class="num">—</b></div>
+        <div><span>近 5 日</span><b id="r5" class="num">—</b></div>
+      </div>
+      <div class="book" id="book"></div>
+    </div>
+  </section>
+
+  <section class="card section">
+    <h2>想在多久內達標？每天平均要漲多少 <small>台股單日漲幅上限 10%</small></h2>
+    <table><thead><tr><th>期限</th><th>交易日</th><th>每日需漲</th><th>對照近 5 日</th></tr></thead><tbody id="req"></tbody></table>
+  </section>
+
+  <footer>
+    資料來源：臺灣證券交易所 MIS 即時報價、STOCK_DAY 個股日成交資訊（經本機代理快取）<br>
+    盤中每 5 秒更新、盤後每 60 秒；分頁切到背景時暫停。推估為單純數學外插，未計國定假日，非投資建議。
+  </footer>
+</div>
+
+<script>
+const TARGET = 1000;
+const $ = id => document.getElementById(id);
+const WEEK = '日一二三四五六';
+const state = { quote: null, history: [], lastPrice: null, shownPrice: null, etaAt: null, nextPollAt: 0, pollTimer: null, interval: 5000 };
+
+/* ---------- 工具 ---------- */
+function taipei() {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Taipei', hourCycle: 'h23', weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date()).map(x => [x.type, x.value]));
+  return { ymd: `${p.year}-${p.month}-${p.day}`, hm: +p.hour * 100 + +p.minute, weekend: p.weekday === 'Sat' || p.weekday === 'Sun' };
+}
+const fmt = (n, d) => n == null ? '—' : (d != null ? n.toFixed(d) : (Number.isInteger(n) ? n.toLocaleString('en-US') : n.toFixed(2)));
+const pad2 = n => String(n).padStart(2, '0');
+const parseYmd = s => { const [y, m, d] = s.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3').split('-').map(Number); return new Date(y, m - 1, d); };
+const toYmd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const mdw = d => `${d.getMonth() + 1}/${d.getDate()}（${WEEK[d.getDay()]}）`;
+function addTradingDays(date, n) {
+  const d = new Date(date);
+  while (n > 0) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) n--; }
+  return d;
+}
+// 台股升降單位
+const tick = p => p < 10 ? .01 : p < 50 ? .05 : p < 100 ? .1 : p < 500 ? .5 : p < 1000 ? 1 : 5;
+function limitUpOf(prev) {
+  const raw = prev * 1.1;
+  let v = Math.floor(raw / tick(raw) + 1e-9) * tick(raw);
+  if (tick(v) !== tick(raw)) v = Math.floor(raw / tick(v) + 1e-9) * tick(v);
+  return Math.round(v * 100) / 100;
+}
+
+/* ---------- 計算 ---------- */
+function mergedSeries() {
+  const s = state.history.map(r => ({ date: r.date, close: r.close }));
+  const q = state.quote;
+  if (q && q.price && q.volume > 0) {
+    const d = toYmd(parseYmd(q.date));
+    const last = s[s.length - 1];
+    if (!last || d > last.date) s.push({ date: d, close: q.price, live: true });
+    else if (d === last.date) last.close = q.price;
+  }
+  return s;
+}
+
+function buildLadder(q) {
+  const t = taipei();
+  const today = parseYmd(t.ymd);
+  const beforeClose = !t.weekend && t.hm < 1330;
+  let base, baseLabel, first;
+  if (beforeClose) {
+    // 今天還能漲停：從昨收起算，第一階就是今天
+    const quoteIsToday = toYmd(parseYmd(q.date)) === t.ymd;
+    base = quoteIsToday ? q.prevClose : q.price;
+    baseLabel = '昨收';
+    first = today;
+  } else {
+    base = q.price; baseLabel = '今收';
+    if (t.weekend || toYmd(parseYmd(q.date)) !== t.ymd) baseLabel = '最新收盤';
+    first = addTradingDays(today, 1);
+  }
+  const steps = [];
+  let p = base, d = first;
+  while (p < TARGET && steps.length < 60) {
+    p = limitUpOf(p);
+    steps.push({ date: new Date(d), price: p, today: toYmd(d) === t.ymd });
+    d = addTradingDays(d, 1);
+  }
+  return { base, baseLabel, steps };
+}
+
+function projection(series, price) {
+  const pts = series.slice(-6);
+  if (pts.length < 2) return null;
+  const n = pts.length - 1, first = pts[0].close, last = pts[pts.length - 1].close;
+  const r = Math.pow(last / first, 1 / n) - 1;
+  const res = { r, n, first, change: last / first - 1, anchor: parseYmd(pts[pts.length - 1].date), from: pts[0].date };
+  if (price >= TARGET) return { ...res, done: true };
+  if (r <= 0) return { ...res, never: true };
+  res.days = Math.max(1, Math.ceil(Math.log(TARGET / price) / Math.log(1 + r)));
+  res.date = addTradingDays(res.anchor, res.days);
+  const slope = (last - first) / n;
+  res.linDays = Math.max(1, Math.ceil((TARGET - price) / slope));
+  return res;
+}
+
+/* ---------- 畫面 ---------- */
+function animatePrice(to) {
+  const el = $('price');
+  const from = state.shownPrice ?? to;
+  const t0 = performance.now(), dur = 700;
+  const decimals = Number.isInteger(to) && Number.isInteger(from) ? 0 : 2;
+  (function step(now) {
+    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = (from + (to - from) * e).toFixed(decimals);
+    if (k < 1) requestAnimationFrame(step);
+  })(t0);
+  state.shownPrice = to;
+}
+
+function renderRing(price) {
+  const C = 2 * Math.PI * 128, k = Math.min(price / TARGET, 1);
+  const bar = $('ringBar');
+  bar.style.strokeDasharray = C;
+  bar.style.strokeDashoffset = C * (1 - k);
+}
+(function drawTicks() {
+  let s = '';
+  for (let i = 0; i < 40; i++) {
+    const a = i / 40 * 2 * Math.PI - Math.PI / 2, major = i % 10 === 0;
+    const r1 = 106, r2 = major ? 96 : 101;
+    s += `<line x1="${150 + r1 * Math.cos(a)}" y1="${150 + r1 * Math.sin(a)}" x2="${150 + r2 * Math.cos(a)}" y2="${150 + r2 * Math.sin(a)}" stroke="rgba(255,255,255,${major ? .35 : .12})" stroke-width="${major ? 2 : 1}"/>`;
+  }
+  $('ticks').innerHTML = s;
+})();
+
+function render() {
+  const q = state.quote;
+  if (!q) return;
+  const price = q.price;
+  const series = mergedSeries();
+  const proj = projection(series, price);
+
+  // 價格與漲跌
+  if (state.lastPrice != null && price !== state.lastPrice) {
+    const el = $('price');
+    el.classList.remove('flash-up', 'flash-down'); void el.offsetWidth;
+    el.classList.add(price > state.lastPrice ? 'flash-up' : 'flash-down');
+  }
+  state.lastPrice = price;
+  animatePrice(price);
+  const diff = price - q.prevClose, pct = diff / q.prevClose * 100;
+  const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+  $('chg').className = 'chg ' + cls;
+  $('chg').textContent = `${diff > 0 ? '▲' : diff < 0 ? '▼' : '—'} ${fmt(+Math.abs(diff).toFixed(2))}　${diff > 0 ? '+' : ''}${pct.toFixed(2)}%`;
+  $('price').style.color = diff > 0 ? '#ffe3e8' : diff < 0 ? '#dcffee' : '';
+  $('gap').innerHTML = price >= TARGET ? '<b>已站上 1000！</b>' : `距 1000 還差 <b>${fmt(+(TARGET - price).toFixed(2))}</b> 元`;
+  renderRing(price);
+
+  // 還差 %
+  const left = (TARGET / price - 1) * 100;
+  $('pctLeft').textContent = price >= TARGET ? '0.00' : left.toFixed(2);
+  $('pctSub').textContent = `目前完成度 ${(Math.min(price / TARGET, 1) * 100).toFixed(1)}%（股價 ÷ 1000）`;
+
+  // 漲停階梯
+  const lad = buildLadder(q);
+  $('limitCount').textContent = price >= TARGET ? '0' : lad.steps.length;
+  if (lad.steps.length) {
+    const last = lad.steps[lad.steps.length - 1];
+    $('limitSub').textContent = `連續漲停最快 ${mdw(last.date)} 摸到 ${fmt(last.price)}`;
+  } else $('limitSub').textContent = '已經在 1000 之上';
+  renderLadder(lad);
+
+  // 推估
+  if (!proj) { $('etaDays').textContent = '—'; $('etaSub').textContent = '歷史資料不足'; state.etaAt = null; }
+  else if (proj.done) { $('etaDays').textContent = '0'; $('etaSub').textContent = '已達標'; state.etaAt = 'done'; }
+  else if (proj.never) {
+    $('etaDays').textContent = '∞';
+    $('etaSub').textContent = `近 5 日 ${(proj.change * 100).toFixed(2)}%，照這走勢到不了 🙃`;
+    state.etaAt = 'never';
+  } else {
+    $('etaDays').textContent = proj.days;
+    $('etaSub').textContent = `近 5 日平均每日 +${(proj.r * 100).toFixed(2)}%（複利）→ 約 ${mdw(proj.date)}；線性外插則約 ${proj.linDays} 日`;
+    const d = proj.date;
+    state.etaAt = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 13, 30).getTime();
+    $('cdSub').textContent = `預計 ${d.getFullYear()}/${mdw(d)} 13:30 收盤站上 1000（未扣國定假日）`;
+  }
+  document.body.classList.toggle('done', price >= TARGET);
+  if (price >= TARGET && !state.celebrated) { state.celebrated = true; fx.burst(); }
+  tickCountdown();
+
+  // 今日盤勢
+  $('todayDate').textContent = `${toYmd(parseYmd(q.date))} ${q.time || ''}`;
+  $('lu').textContent = fmt(q.limitUp); $('ld').textContent = fmt(q.limitDown);
+  $('o').textContent = fmt(q.open); $('y').textContent = fmt(q.prevClose);
+  $('h').textContent = fmt(q.high); $('l').textContent = fmt(q.low);
+  $('v').textContent = q.volume ? q.volume.toLocaleString('en-US') + ' 張' : '—';
+  if (proj) { $('r5').textContent = `${proj.change >= 0 ? '+' : ''}${(proj.change * 100).toFixed(2)}%`; $('r5').className = 'num ' + (proj.change >= 0 ? 'up' : 'down'); }
+  if (q.limitUp && q.limitDown) {
+    const span = q.limitUp - q.limitDown, pos = v => Math.max(0, Math.min(100, (v - q.limitDown) / span * 100));
+    if (q.high && q.low) { $('rangeHL').style.left = pos(q.low) + '%'; $('rangeHL').style.width = (pos(q.high) - pos(q.low)) + '%'; }
+    $('rangeNow').style.left = pos(price) + '%';
+  }
+  let book = '<div class="h">委買</div><div class="h">委賣</div>';
+  for (let i = 0; i < 5; i++) book += `<div class="num b">${fmt(q.bids[i])}</div><div class="num a">${fmt(q.asks[i])}</div>`;
+  $('book').innerHTML = (q.bids.length || q.asks.length) ? book : '';
+
+  renderReq(price, proj);
+  renderChart(series, proj, price);
+}
+
+function renderLadder(lad) {
+  const el = $('ladder');
+  const steps = lad.steps;
+  let shown = steps.map((s, i) => ({ ...s, i }));
+  if (shown.length > 12) shown = [...shown.slice(0, 8), null, ...shown.slice(-3)];
+  let html = `<div class="step base" style="height:70px"><div class="d">${lad.baseLabel}</div><div class="p">${fmt(lad.base)}</div><div class="t">起點</div></div>`;
+  shown.forEach((s, k) => {
+    if (!s) { html += '<div class="step ellipsis">…</div>'; return; }
+    const h = 70 + (s.i + 1) / steps.length * 110;
+    const goal = s.i === steps.length - 1;
+    html += `<div class="step${goal ? ' goal' : ''}${s.today ? ' today' : ''}" style="height:${h}px;animation-delay:${k * 70}ms">
+      <div class="d">${s.today ? '今天 ' : ''}${mdw(s.date)}</div><div class="p">${fmt(s.price)}</div><div class="t">${goal ? '🏁 破千' : `第 ${s.i + 1} 根`}</div></div>`;
+  });
+  const sig = steps.map(s => s.price).join() + lad.base;
+  if (el.dataset.sig !== sig) { el.innerHTML = html; el.dataset.sig = sig; }
+  $('ladderNote').textContent = steps.length ? `漲停價依台股升降單位無條件捨去；連拉 ${steps.length} 根最快 ${mdw(steps[steps.length - 1].date)} 破千` : '';
+}
+
+function renderReq(price, proj) {
+  const rows = [['1 週', 5], ['2 週', 10], ['1 個月', 21], ['1 季', 63], ['半年', 126], ['1 年', 250]];
+  $('req').innerHTML = rows.map(([label, n]) => {
+    if (price >= TARGET) return `<tr><td>${label}</td><td class="n">${n}</td><td class="n">—</td><td><span class="tag ok">已達標</span></td></tr>`;
+    const r = Math.pow(TARGET / price, 1 / n) - 1;
+    let tag;
+    if (r > 0.1) tag = '<span class="tag no">天天漲停也來不及</span>';
+    else if (proj && proj.r >= r) tag = '<span class="tag ok">近 5 日速度就夠</span>';
+    else tag = `<span class="tag hard">要比近 5 日快 ${proj && proj.r > 0 ? (r / proj.r).toFixed(1) + ' 倍' : '（近期在跌）'}</span>`;
+    return `<tr><td>${label}</td><td class="n">${n}</td><td class="n">+${(r * 100).toFixed(2)}%</td><td>${tag}</td></tr>`;
+  }).join('');
+}
+
+/* ---------- 走勢圖 ---------- */
+function renderChart(series, proj, price) {
+  const box = $('chart');
+  const W = Math.max(320, box.clientWidth), H = 300;
+  const P = { l: 46, r: 64, t: 14, b: 28 };
+  const hist = series.slice(-40).map(p => ({ ...p, d: parseYmd(p.date) }));
+  if (hist.length < 2) return;
+  const fut = [];
+  if (proj && !proj.done && !proj.never) {
+    let p = hist[hist.length - 1].close, d = hist[hist.length - 1].d;
+    const n = Math.min(proj.days, 40);
+    for (let i = 1; i <= n; i++) { p *= 1 + proj.r; d = addTradingDays(d, 1); fut.push({ close: p, d, proj: true }); }
+  }
+  const all = hist.concat(fut);
+  const N = all.length;
+  const vals = all.map(p => p.close);
+  let lo = Math.min(...vals), hi = Math.max(TARGET, ...vals);
+  const padv = (hi - lo) * 0.08; lo -= padv; hi += padv;
+  const x = i => P.l + i / (N - 1) * (W - P.l - P.r);
+  const y = v => P.t + (1 - (v - lo) / (hi - lo)) * (H - P.t - P.b);
+  const raw = (hi - lo) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw);
+  let grid = '';
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step)
+    grid += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(255,255,255,.06)"/><text x="${P.l - 8}" y="${y(v) + 4}" text-anchor="end" fill="#6f6e8a" font-size="11">${v}</text>`;
+  const line = pts => pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.close).toFixed(1)}`).join('');
+  const H_ = hist.map((p, i) => ({ ...p, i }));
+  const F_ = [H_[H_.length - 1], ...fut.map((p, k) => ({ ...p, i: hist.length + k }))];
+  const area = line(H_) + `L${x(H_.length - 1)},${H - P.b}L${x(0)},${H - P.b}Z`;
+  const b0 = Math.max(0, hist.length - 6);
+  const labelIdx = [0, Math.floor((hist.length - 1) / 2), hist.length - 1, ...(fut.length ? [N - 1] : [])];
+  const xl = [...new Set(labelIdx)].map(i => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" fill="#6f6e8a" font-size="11">${all[i].d.getMonth() + 1}/${all[i].d.getDate()}</text>`).join('');
+  const last = H_[H_.length - 1];
+  box.querySelector('svg')?.remove();
+  box.insertAdjacentHTML('afterbegin', `
+  <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="國巨近期收盤價與推估">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fb2ff" stop-opacity=".35"/><stop offset="1" stop-color="#7fb2ff" stop-opacity="0"/></linearGradient></defs>
+    ${grid}
+    <rect x="${x(b0)}" y="${P.t}" width="${x(hist.length - 1) - x(b0)}" height="${H - P.t - P.b}" fill="rgba(255,255,255,.05)" rx="4"/>
+    <line x1="${P.l}" x2="${W - P.r}" y1="${y(TARGET)}" y2="${y(TARGET)}" stroke="rgba(247,201,72,.6)" stroke-dasharray="2 4" stroke-width="1.5"/>
+    <text x="${W - P.r + 6}" y="${y(TARGET) + 4}" fill="#f7c948" font-size="12" font-weight="700">1000</text>
+    <path d="${area}" fill="url(#ag)"/>
+    <path d="${line(H_)}" fill="none" stroke="#7fb2ff" stroke-width="2" stroke-linejoin="round"/>
+    ${fut.length ? `<path d="${line(F_)}" fill="none" stroke="#f7c948" stroke-width="2" stroke-dasharray="6 5"/>` : ''}
+    <circle cx="${x(last.i)}" cy="${y(last.close)}" r="5" fill="#7fb2ff" stroke="#06060c" stroke-width="2"/>
+    <text x="${W - P.r + 6}" y="${y(last.close) + 4}" fill="#ecebf5" font-size="12" font-weight="700">${fmt(price)}</text>
+    ${xl}
+    <line id="xh" y1="${P.t}" y2="${H - P.b}" stroke="rgba(255,255,255,.35)" stroke-width="1" opacity="0"/>
+    <circle id="xd" r="5" fill="#fff" stroke="#06060c" stroke-width="2" opacity="0"/>
+    <rect x="${P.l}" y="0" width="${W - P.l - P.r}" height="${H}" fill="transparent" id="hit"/>
+  </svg>`);
+  const svg = box.querySelector('svg'), tip = $('tip');
+  const move = ev => {
+    const r = svg.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(N - 1, Math.round((sx - P.l) / (W - P.l - P.r) * (N - 1))));
+    const p = all[i];
+    const xh = svg.querySelector('#xh'), xd = svg.querySelector('#xd');
+    xh.setAttribute('x1', x(i)); xh.setAttribute('x2', x(i)); xh.setAttribute('opacity', 1);
+    xd.setAttribute('cx', x(i)); xd.setAttribute('cy', y(p.close)); xd.setAttribute('opacity', 1);
+    xd.setAttribute('fill', p.proj ? '#f7c948' : '#7fb2ff');
+    tip.innerHTML = `${mdw(p.d)}${p.proj ? ' 推估' : p.live ? ' 盤中' : ''}<br><b>${p.close.toFixed(p.proj ? 1 : 2)}</b>`;
+    tip.style.left = (x(i) / W * r.width) + 'px';
+    tip.style.top = (y(p.close) / H * r.height) + 'px';
+    tip.style.opacity = 1;
+  };
+  svg.querySelector('#hit').addEventListener('pointermove', move);
+  svg.querySelector('#hit').addEventListener('pointerleave', () => {
+    tip.style.opacity = 0; svg.querySelector('#xh').setAttribute('opacity', 0); svg.querySelector('#xd').setAttribute('opacity', 0);
+  });
+}
+let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(render, 150); });
+
+/* ---------- 倒數 ---------- */
+function tickCountdown() {
+  const cd = $('cd');
+  const set = (d, h, m, s) => { $('cdD').textContent = d; $('cdH').textContent = h; $('cdM').textContent = m; $('cdS').textContent = s; };
+  if (state.etaAt === 'never') { cd.classList.add('never'); set('∞', '∞', '∞', '∞'); $('cdTitle').textContent = '預計達標倒數'; $('cdSub').textContent = '近 5 日走勢向下，照這速度永遠到不了，等反彈再說'; return; }
+  if (state.etaAt === 'done') { cd.classList.remove('never'); set('00', '00', '00', '00'); $('cdTitle').textContent = '已達標'; $('cdSub').textContent = '國巨站上 1000 元'; return; }
+  if (!state.etaAt) return;
+  cd.classList.remove('never');
+  $('cdTitle').textContent = '照近 5 日走勢，預計達標倒數';
+  let s = Math.max(0, Math.floor((state.etaAt - Date.now()) / 1000));
+  const d = Math.floor(s / 86400); s %= 86400;
+  set(d, pad2(Math.floor(s / 3600)), pad2(Math.floor(s % 3600 / 60)), pad2(s % 60));
+}
+setInterval(tickCountdown, 1000);
+
+/* ---------- 資料輪詢 ---------- */
+async function loadHistory() {
+  try {
+    const r = await fetch('/api/history');
+    if (!r.ok) throw new Error((await r.json()).error);
+    state.history = (await r.json()).rows;
+    render();
+  } catch (e) { console.warn('history', e); }
+}
+
+async function poll() {
+  clearTimeout(state.pollTimer);
+  try {
+    const r = await fetch('/api/quote');
+    const q = await r.json();
+    if (!r.ok) throw new Error(q.error);
+    state.quote = q;
+    state.interval = q.session ? 5000 : 60000;
+    const pill = $('pill');
+    pill.className = 'pill ' + (q.stale ? 'err' : q.session ? 'live' : 'closed');
+    pill.textContent = q.stale ? '上游異常・顯示快取' : q.session ? '盤中即時' : '非交易時段';
+    $('updated').textContent = `資料時間 ${q.time || '—'}`;
+    render();
+  } catch (e) {
+    console.warn('quote', e);
+    $('pill').className = 'pill err'; $('pill').textContent = '連線失敗，稍後重試';
+    state.interval = 15000;
+  }
+  if (!document.hidden) {
+    state.nextPollAt = Date.now() + state.interval;
+    state.pollTimer = setTimeout(poll, state.interval);
+  }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); else clearTimeout(state.pollTimer); });
+(function bar() {
+  const left = Math.max(0, state.nextPollAt - Date.now());
+  $('refreshBar').style.width = (100 - left / state.interval * 100) + '%';
+  requestAnimationFrame(bar);
+})();
+
+/* ---------- 背景火花 ---------- */
+const fx = (() => {
+  const cv = $('fx'), ctx = cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, dpr, parts = [];
+  const resize = () => { dpr = Math.min(devicePixelRatio || 1, 2); W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr; };
+  resize(); addEventListener('resize', resize);
+  const colors = ['247,201,72', '255,61,95', '255,159,28', '255,243,196'];
+  const spawn = (burst) => ({
+    x: burst ? W / 2 : Math.random() * W, y: burst ? H * .45 : H + 10 * dpr,
+    vx: burst ? (Math.random() - .5) * 14 * dpr : (Math.random() - .5) * .3 * dpr,
+    vy: burst ? (-Math.random() * 14 - 2) * dpr : (-Math.random() * .9 - .3) * dpr,
+    r: (Math.random() * 1.8 + .6) * dpr, life: 1, decay: burst ? .008 : .0015 + Math.random() * .002,
+    c: colors[Math.random() * colors.length | 0], g: burst ? .25 * dpr : 0,
+  });
+  if (!reduce) for (let i = 0; i < 70; i++) { const p = spawn(); p.y = Math.random() * H; parts.push(p); }
+  (function frame() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of parts) {
+      p.x += p.vx; p.y += p.vy; p.vy += p.g; p.life -= p.decay;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7);
+      ctx.fillStyle = `rgba(${p.c},${Math.max(0, p.life) * .8})`;
+      ctx.shadowBlur = 12 * dpr; ctx.shadowColor = `rgba(${p.c},1)`;
+      ctx.fill();
+    }
+    parts = parts.filter(p => p.life > 0 && p.y > -20 && p.y < H + 40);
+    if (!reduce) while (parts.length < 70) parts.push(spawn());
+    requestAnimationFrame(frame);
+  })();
+  return { burst() { if (!reduce) for (let i = 0; i < 260; i++) parts.push(spawn(true)); } };
+})();
+
+loadHistory();
+poll();
+setInterval(loadHistory, 30 * 60 * 1000);
+</script>
+</body>
+</html>
