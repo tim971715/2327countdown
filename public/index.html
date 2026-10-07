@@ -222,8 +222,8 @@ body.done .banner{display:block}
   </section>
 
   <footer>
-    資料來源：臺灣證券交易所 MIS 即時報價、STOCK_DAY 個股日成交資訊（經本機代理快取）<br>
-    盤中每 5 秒更新、盤後每 60 秒；分頁切到背景時暫停。推估為單純數學外插，未計國定假日，非投資建議。
+    資料來源：臺灣證券交易所 MIS 即時報價、STOCK_DAY 個股日成交資訊、市場開休市日期（經本機代理快取）<br>
+    盤中每 5 秒更新、盤後每 60 秒；分頁切到背景時暫停。交易日已扣除證交所公布之休市日。推估為單純數學外插，非投資建議。
   </footer>
 </div>
 
@@ -231,7 +231,7 @@ body.done .banner{display:block}
 const TARGET = 1000;
 const $ = id => document.getElementById(id);
 const WEEK = '日一二三四五六';
-const state = { quote: null, history: [], lastPrice: null, shownPrice: null, etaAt: null, nextPollAt: 0, pollTimer: null, interval: 5000 };
+const state = { quote: null, history: [], holidays: new Map(), holidayYears: [], lastPrice: null, shownPrice: null, etaAt: null, nextPollAt: 0, pollTimer: null, interval: 5000 };
 
 /* ---------- 工具 ---------- */
 function taipei() {
@@ -243,11 +243,26 @@ const pad2 = n => String(n).padStart(2, '0');
 const parseYmd = s => { const [y, m, d] = s.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3').split('-').map(Number); return new Date(y, m - 1, d); };
 const toYmd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const mdw = d => `${d.getMonth() + 1}/${d.getDate()}（${WEEK[d.getDay()]}）`;
+// 交易日 = 非週末且不在證交所休市日清單（/api/holidays）
+const isTradingDay = d => d.getDay() !== 0 && d.getDay() !== 6 && !state.holidays.has(toYmd(d));
 function addTradingDays(date, n) {
   const d = new Date(date);
-  while (n > 0) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) n--; }
+  while (n > 0) { d.setDate(d.getDate() + 1); if (isTradingDay(d)) n--; }
   return d;
 }
+// (from, to] 之間跳過的休市日（不含週末），給說明文字用
+function skippedHolidays(from, to) {
+  const out = [];
+  for (const d = new Date(from); d < to;) {
+    d.setDate(d.getDate() + 1);
+    const name = state.holidays.get(toYmd(d));
+    if (name && d.getDay() !== 0 && d.getDay() !== 6) out.push(`${d.getMonth() + 1}/${d.getDate()} ${name.split(/[／/]/)[0].trim()}`);
+  }
+  return out;
+}
+// 推估日期落在證交所尚未公布休市日的年份 → 提醒
+const holidayCaveat = d => state.holidayYears.length && !state.holidayYears.includes(d.getFullYear())
+  ? `（${d.getFullYear()} 年休市日證交所尚未公布，該年只扣週末）` : '（已扣除證交所休市日）';
 // 台股升降單位
 const tick = p => p < 10 ? .01 : p < 50 ? .05 : p < 100 ? .1 : p < 500 ? .5 : p < 1000 ? 1 : 5;
 function limitUpOf(prev) {
@@ -273,7 +288,7 @@ function mergedSeries() {
 function buildLadder(q) {
   const t = taipei();
   const today = parseYmd(t.ymd);
-  const beforeClose = !t.weekend && t.hm < 1330;
+  const beforeClose = isTradingDay(today) && t.hm < 1330;
   let base, baseLabel, first;
   if (beforeClose) {
     // 今天還能漲停：從昨收起算，第一階就是今天
@@ -283,7 +298,7 @@ function buildLadder(q) {
     first = today;
   } else {
     base = q.price; baseLabel = '今收';
-    if (t.weekend || toYmd(parseYmd(q.date)) !== t.ymd) baseLabel = '最新收盤';
+    if (!isTradingDay(today) || toYmd(parseYmd(q.date)) !== t.ymd) baseLabel = '最新收盤';
     first = addTradingDays(today, 1);
   }
   const steps = [];
@@ -293,7 +308,8 @@ function buildLadder(q) {
     steps.push({ date: new Date(d), price: p, today: toYmd(d) === t.ymd });
     d = addTradingDays(d, 1);
   }
-  return { base, baseLabel, steps };
+  const skipped = steps.length ? skippedHolidays(today, steps[steps.length - 1].date) : [];
+  return { base, baseLabel, steps, skipped };
 }
 
 function projection(series, price) {
@@ -390,7 +406,8 @@ function render() {
     $('etaSub').textContent = `近 5 日平均每日 +${(proj.r * 100).toFixed(2)}%（複利）→ 約 ${mdw(proj.date)}；線性外插則約 ${proj.linDays} 日`;
     const d = proj.date;
     state.etaAt = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 13, 30).getTime();
-    $('cdSub').textContent = `預計 ${d.getFullYear()}/${mdw(d)} 13:30 收盤站上 1000（未扣國定假日）`;
+    const skipped = skippedHolidays(proj.anchor, d);
+    $('cdSub').textContent = `預計 ${d.getFullYear()}/${mdw(d)} 13:30 收盤站上 1000${holidayCaveat(d)}${skipped.length && skipped.length <= 4 ? `，途中休市：${skipped.join('、')}` : skipped.length ? `，途中跳過 ${skipped.length} 個休市日` : ''}`;
   }
   document.body.classList.toggle('done', price >= TARGET);
   if (price >= TARGET && !state.celebrated) { state.celebrated = true; fx.burst(); }
@@ -431,7 +448,7 @@ function renderLadder(lad) {
   });
   const sig = steps.map(s => s.price).join() + lad.base;
   if (el.dataset.sig !== sig) { el.innerHTML = html; el.dataset.sig = sig; }
-  $('ladderNote').textContent = steps.length ? `漲停價依台股升降單位無條件捨去；連拉 ${steps.length} 根最快 ${mdw(steps[steps.length - 1].date)} 破千` : '';
+  $('ladderNote').textContent = steps.length ? `漲停價依台股升降單位無條件捨去；連拉 ${steps.length} 根最快 ${mdw(steps[steps.length - 1].date)} 破千${lad.skipped.length ? `；已跳過休市 ${lad.skipped.join('、')}` : ''}` : '';
 }
 
 function renderReq(price, proj) {
@@ -536,6 +553,17 @@ function tickCountdown() {
 setInterval(tickCountdown, 1000);
 
 /* ---------- 資料輪詢 ---------- */
+async function loadHolidays() {
+  try {
+    const r = await fetch('/api/holidays');
+    if (!r.ok) throw new Error((await r.json()).error);
+    const j = await r.json();
+    state.holidays = new Map(j.closed.map(h => [h.date, h.name]));
+    state.holidayYears = j.years;
+    render();
+  } catch (e) { console.warn('holidays', e); }
+}
+
 async function loadHistory() {
   try {
     const r = await fetch('/api/history');
@@ -608,9 +636,11 @@ const fx = (() => {
   return { burst() { if (!reduce) for (let i = 0; i < 260; i++) parts.push(spawn(true)); } };
 })();
 
+loadHolidays();
 loadHistory();
 poll();
 setInterval(loadHistory, 30 * 60 * 1000);
+setInterval(loadHolidays, 12 * 60 * 60 * 1000);
 </script>
 </body>
 </html>
