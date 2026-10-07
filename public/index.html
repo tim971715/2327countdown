@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>國巨千元倒數</title>
+<title>宜瑾姐的國巨復仇之路</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -141,7 +141,7 @@ body.done .banner{display:block}
 <canvas id="fx"></canvas>
 <div class="wrap">
   <header>
-    <div class="brand"><span class="code">2327</span><h1>國巨 <em>千元倒數</em></h1></div>
+    <div class="brand"><span class="code">2327</span><h1 id="title"></h1></div>
     <div class="status"><span id="updated"></span><span id="pill" class="pill">連線中…</span></div>
   </header>
   <div class="refresh"><i id="refreshBar"></i></div>
@@ -162,17 +162,17 @@ body.done .banner{display:block}
         <div class="lbl">即時股價</div>
         <div id="price" class="price">———</div>
         <div id="chg" class="chg flat">—</div>
-        <div id="gap" class="gap">距 1000 還差 <b>—</b> 元</div>
+        <div id="gap" class="gap">&nbsp;</div>
       </div>
     </div>
     <div class="stats">
-      <div class="card stat"><div class="lbl">距離 1000 還差</div><div class="big"><span id="pctLeft">—</span><small>%</small></div><div class="sub" id="pctSub">&nbsp;</div></div>
+      <div class="card stat"><div class="lbl">距離 <span class="tgt"></span> 還差</div><div class="big"><span id="pctLeft">—</span><small>%</small></div><div class="sub" id="pctSub">&nbsp;</div></div>
       <div class="card stat"><div class="lbl">還要漲停</div><div class="big"><span id="limitCount">—</span><small>次</small></div><div class="sub" id="limitSub">&nbsp;</div></div>
       <div class="card stat"><div class="lbl">照近 5 日走勢推估</div><div class="big"><span id="etaDays">—</span><small>個交易日</small></div><div class="sub" id="etaSub">&nbsp;</div></div>
     </div>
   </section>
 
-  <div class="banner">🎉 國巨千元達陣！🎉</div>
+  <div class="banner">🎉 復仇成功！國巨站上 <span class="tgt"></span> 🎉</div>
 
   <section class="card countdown">
     <div class="lbl" id="cdTitle">預計達標倒數</div>
@@ -197,7 +197,7 @@ body.done .banner{display:block}
       <div class="legend">
         <span><i style="border-color:var(--blue)"></i>收盤價</span>
         <span><i style="border-color:var(--gold);border-top-style:dashed"></i>照近 5 日複利外插</span>
-        <span><i style="border-color:rgba(247,201,72,.6);border-top-style:dotted"></i>1000 目標</span>
+        <span><i style="border-color:rgba(247,201,72,.6);border-top-style:dotted"></i><span class="tgt"></span> 目標</span>
       </div>
     </div>
     <div class="card">
@@ -228,10 +228,17 @@ body.done .banner{display:block}
 </div>
 
 <script>
-const TARGET = 1000;
+// ===== 要改目標價或標題，只改這裡 =====
+const TARGET = 1040;
+const TITLE = ['宜瑾姐的', '國巨復仇之路']; // [前段, 金色漸層段]
+// ======================================
 const $ = id => document.getElementById(id);
 const WEEK = '日一二三四五六';
 const state = { quote: null, history: [], holidays: new Map(), holidayYears: [], lastPrice: null, shownPrice: null, etaAt: null, nextPollAt: 0, pollTimer: null, interval: 5000 };
+
+document.title = TITLE.join('');
+$('title').innerHTML = `${TITLE[0]} <em>${TITLE[1]}</em>`;
+document.querySelectorAll('.tgt').forEach(el => { el.textContent = TARGET; });
 
 /* ---------- 工具 ---------- */
 function taipei() {
@@ -377,13 +384,13 @@ function render() {
   $('chg').className = 'chg ' + cls;
   $('chg').textContent = `${diff > 0 ? '▲' : diff < 0 ? '▼' : '—'} ${fmt(+Math.abs(diff).toFixed(2))}　${diff > 0 ? '+' : ''}${pct.toFixed(2)}%`;
   $('price').style.color = diff > 0 ? '#ffe3e8' : diff < 0 ? '#dcffee' : '';
-  $('gap').innerHTML = price >= TARGET ? '<b>已站上 1000！</b>' : `距 1000 還差 <b>${fmt(+(TARGET - price).toFixed(2))}</b> 元`;
+  $('gap').innerHTML = price >= TARGET ? `<b>已站上 ${TARGET}！</b>` : `距 ${TARGET} 還差 <b>${fmt(+(TARGET - price).toFixed(2))}</b> 元`;
   renderRing(price);
 
   // 還差 %
   const left = (TARGET / price - 1) * 100;
   $('pctLeft').textContent = price >= TARGET ? '0.00' : left.toFixed(2);
-  $('pctSub').textContent = `目前完成度 ${(Math.min(price / TARGET, 1) * 100).toFixed(1)}%（股價 ÷ 1000）`;
+  $('pctSub').textContent = `目前完成度 ${(Math.min(price / TARGET, 1) * 100).toFixed(1)}%（股價 ÷ ${TARGET}）`;
 
   // 漲停階梯
   const lad = buildLadder(q);
@@ -391,7 +398,7 @@ function render() {
   if (lad.steps.length) {
     const last = lad.steps[lad.steps.length - 1];
     $('limitSub').textContent = `連續漲停最快 ${mdw(last.date)} 摸到 ${fmt(last.price)}`;
-  } else $('limitSub').textContent = '已經在 1000 之上';
+  } else $('limitSub').textContent = `已經在 ${TARGET} 之上`;
   renderLadder(lad);
 
   // 推估
@@ -407,7 +414,7 @@ function render() {
     const d = proj.date;
     state.etaAt = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 13, 30).getTime();
     const skipped = skippedHolidays(proj.anchor, d);
-    $('cdSub').textContent = `預計 ${d.getFullYear()}/${mdw(d)} 13:30 收盤站上 1000${holidayCaveat(d)}${skipped.length && skipped.length <= 4 ? `，途中休市：${skipped.join('、')}` : skipped.length ? `，途中跳過 ${skipped.length} 個休市日` : ''}`;
+    $('cdSub').textContent = `預計 ${d.getFullYear()}/${mdw(d)} 13:30 收盤站上 ${TARGET}${holidayCaveat(d)}${skipped.length && skipped.length <= 4 ? `，途中休市：${skipped.join('、')}` : skipped.length ? `，途中跳過 ${skipped.length} 個休市日` : ''}`;
   }
   document.body.classList.toggle('done', price >= TARGET);
   if (price >= TARGET && !state.celebrated) { state.celebrated = true; fx.burst(); }
@@ -444,11 +451,11 @@ function renderLadder(lad) {
     const h = 70 + (s.i + 1) / steps.length * 110;
     const goal = s.i === steps.length - 1;
     html += `<div class="step${goal ? ' goal' : ''}${s.today ? ' today' : ''}" style="height:${h}px;animation-delay:${k * 70}ms">
-      <div class="d">${s.today ? '今天 ' : ''}${mdw(s.date)}</div><div class="p">${fmt(s.price)}</div><div class="t">${goal ? '🏁 破千' : `第 ${s.i + 1} 根`}</div></div>`;
+      <div class="d">${s.today ? '今天 ' : ''}${mdw(s.date)}</div><div class="p">${fmt(s.price)}</div><div class="t">${goal ? `🏁 ${TARGET}` : `第 ${s.i + 1} 根`}</div></div>`;
   });
   const sig = steps.map(s => s.price).join() + lad.base;
   if (el.dataset.sig !== sig) { el.innerHTML = html; el.dataset.sig = sig; }
-  $('ladderNote').textContent = steps.length ? `漲停價依台股升降單位無條件捨去；連拉 ${steps.length} 根最快 ${mdw(steps[steps.length - 1].date)} 破千${lad.skipped.length ? `；已跳過休市 ${lad.skipped.join('、')}` : ''}` : '';
+  $('ladderNote').textContent = steps.length ? `漲停價依台股升降單位無條件捨去；連拉 ${steps.length} 根最快 ${mdw(steps[steps.length - 1].date)} 站上 ${TARGET}${lad.skipped.length ? `；已跳過休市 ${lad.skipped.join('、')}` : ''}` : '';
 }
 
 function renderReq(price, proj) {
@@ -504,7 +511,7 @@ function renderChart(series, proj, price) {
     ${grid}
     <rect x="${x(b0)}" y="${P.t}" width="${x(hist.length - 1) - x(b0)}" height="${H - P.t - P.b}" fill="rgba(255,255,255,.05)" rx="4"/>
     <line x1="${P.l}" x2="${W - P.r}" y1="${y(TARGET)}" y2="${y(TARGET)}" stroke="rgba(247,201,72,.6)" stroke-dasharray="2 4" stroke-width="1.5"/>
-    <text x="${W - P.r + 6}" y="${y(TARGET) + 4}" fill="#f7c948" font-size="12" font-weight="700">1000</text>
+    <text x="${W - P.r + 6}" y="${y(TARGET) + 4}" fill="#f7c948" font-size="12" font-weight="700">${TARGET}</text>
     <path d="${area}" fill="url(#ag)"/>
     <path d="${line(H_)}" fill="none" stroke="#7fb2ff" stroke-width="2" stroke-linejoin="round"/>
     ${fut.length ? `<path d="${line(F_)}" fill="none" stroke="#f7c948" stroke-width="2" stroke-dasharray="6 5"/>` : ''}
@@ -542,7 +549,7 @@ function tickCountdown() {
   const cd = $('cd');
   const set = (d, h, m, s) => { $('cdD').textContent = d; $('cdH').textContent = h; $('cdM').textContent = m; $('cdS').textContent = s; };
   if (state.etaAt === 'never') { cd.classList.add('never'); set('∞', '∞', '∞', '∞'); $('cdTitle').textContent = '預計達標倒數'; $('cdSub').textContent = '近 5 日走勢向下，照這速度永遠到不了，等反彈再說'; return; }
-  if (state.etaAt === 'done') { cd.classList.remove('never'); set('00', '00', '00', '00'); $('cdTitle').textContent = '已達標'; $('cdSub').textContent = '國巨站上 1000 元'; return; }
+  if (state.etaAt === 'done') { cd.classList.remove('never'); set('00', '00', '00', '00'); $('cdTitle').textContent = '已達標'; $('cdSub').textContent = `國巨站上 ${TARGET} 元`; return; }
   if (!state.etaAt) return;
   cd.classList.remove('never');
   $('cdTitle').textContent = '照近 5 日走勢，預計達標倒數';

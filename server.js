@@ -1,4 +1,4 @@
-// 本機版：國巨 2327 千元倒數看板（零相依，Node 20.11+）
+// 本機版：國巨 2327 目標價倒數看板（零相依，Node 20.11+）
 // 部署到 Cloudflare Pages 時不會用到這支，那邊由 functions/api/* 代理證交所。
 import http from 'node:http';
 import fs from 'node:fs';
@@ -37,5 +37,5 @@ http.createServer(async (req, res) => {
     send(res, 502, { error: String(err.message || err) });
   }
 }).listen(PORT, () => {
-  console.log(`國巨千元倒數看板：http://localhost:${PORT}`);
+  console.log(`宜瑾姐的國巨復仇之路：http://localhost:${PORT}`);
 });
